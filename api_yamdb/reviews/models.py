@@ -15,7 +15,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLES)
 
 
-class Categorie(models.Model):
+class Category(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True)
 
@@ -43,7 +43,7 @@ class Title(models.Model):
         through='GenreTitle'
     )
     category = models.ForeignKey(
-        Categorie,
+        Category,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
