@@ -33,24 +33,22 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField(max_length=256)
-    year = models.PositiveSmallIntegerField(
-        blank=True,
-        null=True,
-    )
+    year = models.PositiveSmallIntegerField()
     description = models.TextField(blank=True)
     genre = models.ManyToManyField(
         Genre,
-        through='GenreTitle'
+        through='GenreTitle',
+        blank=True
     )
     category = models.ForeignKey(
         Category,
-        on_delete=models.SET_NULL,
+        models.SET_NULL,
         blank=True,
-        null=True,
+        null=True
     )
     rating = models.PositiveSmallIntegerField(
         blank=True,
-        null=True,
+        null=True
     )
 
     def __str__(self):
