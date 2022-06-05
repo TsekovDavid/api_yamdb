@@ -38,13 +38,15 @@ class Title(models.Model):
     genre = models.ManyToManyField(
         Genre,
         through='GenreTitle',
-        blank=True
+        blank=True,
+        related_name='titles',
     )
     category = models.ForeignKey(
         Category,
         models.SET_NULL,
         blank=True,
-        null=True
+        null=True,
+        related_name='titles',
     )
     rating = models.PositiveSmallIntegerField(
         blank=True,

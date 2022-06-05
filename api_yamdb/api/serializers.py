@@ -1,4 +1,6 @@
+from datetime import date
 from rest_framework import serializers
+
 from reviews.models import Category, Genre, GenreTitle, Title
 
 
@@ -31,3 +33,9 @@ class TitleSerializer(serializers.ModelSerializer):
         for genre in genres:
             GenreTitle.objects.create(title=title, genre=genre)
         return title
+
+    def validate_year(self, value):
+        year = date.today().year
+        if not (value <= year):
+            raise serializers.ValidationError('Проверьте год выпуска!')
+        return value
