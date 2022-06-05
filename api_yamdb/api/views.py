@@ -1,15 +1,16 @@
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from reviews.models import Category, Genre, Title
+from reviews.models import Category, Genre, Review, Title
 
 from .filters import TitleFilter
 from .permissions import AdminPermission
 from .serializers import (
-    CategorySerializer, GenreSerializer, TitleSerializer
+    CategorySerializer, GenreSerializer, ReviewSerializer, TitleSerializer
 )
 from .viewsets import CreateRetrieveListViewSet
 
@@ -93,3 +94,23 @@ class TitleViewSet(viewsets.ModelViewSet):
             else:
                 raise serializers.ValidationError('Введите существующий жанр!')
         serializer.save(category=category, genre=genre)
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    pagination_class = PageNumberPagination
+    # permission_classes = настроить для разных запросов
+
+    def get_queryset(self):
+        pk = self.kwargs.get("title_id")
+        title = get_object_or_404(Title, pk=pk)
+        new_queryset = title.reviews.all()
+        return new_queryset
+
+    def perform_create(self, serializer):
+        pk = self.kwargs.get("title_id")
+        serializer.save(
+            author=self.request.user,
+            title=get_object_or_404(Title, pk=pk)
+        )
