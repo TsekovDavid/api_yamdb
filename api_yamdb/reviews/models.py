@@ -11,14 +11,21 @@ class User(AbstractUser):
         ('admin', 'Администратор'),
     ]
 
-    email = models.EmailField('Почта', unique=True)
+    email = models.EmailField('Почта', unique=True, max_length=254)
     bio = models.TextField('Биография', blank=True,)
     role = models.CharField(
-        'Роль', max_length=9, choices=ROLES, default='user'
-        )
+        'Роль', max_length=20, choices=ROLES, default='user'
+    )
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return self.username[:20]
 
 
-class Categorie(models.Model):
+class Category(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True)
 
@@ -46,7 +53,7 @@ class Title(models.Model):
         through='GenreTitle'
     )
     category = models.ForeignKey(
-        Categorie,
+        Category,
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
