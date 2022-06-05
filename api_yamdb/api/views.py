@@ -7,7 +7,9 @@ from rest_framework.response import Response
 from reviews.models import Category, Genre, Title
 
 from .permissions import AdminPermission
-from .serializers import CategorySerializer, GenreSerializer, TitleSerializer
+from .serializers import (
+    CategorySerializer, GenreSerializer, TitleSerializer
+)
 from .viewsets import CreateRetrieveListViewSet
 
 
@@ -53,5 +55,15 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
+    permission_classes = (AdminPermission,)
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('name', 'year', 'category', 'genre',)
+
+    def perform_create(self, serializer):
+        category_slug = self.request.data.get('category')
+        category = Category.objects.get(slug=category_slug)
+        genre_slugs = self.request.data.get('genre')
+        genre = []
+        for genre_slug in genre_slugs:
+            genre.append(Genre.objects.get(slug=genre_slug))
+        serializer.save(category=category, genre=genre)

@@ -5,32 +5,29 @@ from reviews.models import Category, Genre, GenreTitle, Title
 class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
-        fields = '__all__'
+        fields = ('name', 'slug')
         model = Category
 
 
 class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
-        fields = '__all__'
+        fields = ('name', 'slug')
         model = Genre
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    category = serializers.SlugRelatedField(
-        slug_field='slug', queryset=Category.objects.all()
-    )
-    genre = GenreSerializer(many=True)
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
 
     class Meta:
-        fields = '__all__'
         model = Title
+        fields = '__all__'
+        read_only_fields = ('rating',)
 
     def create(self, validated_data):
         genres = validated_data.pop('genre')
         title = Title.objects.create(**validated_data)
-        # for genre_slug in genres:
-        #     current_genre = Genre.objects.filter(slug=genre_slug['slug'])
-        #     GenreTitle.objects.create(
-        #         genre=current_genre, title=title)
+        for genre in genres:
+            GenreTitle.objects.create(title=title, genre=genre)
         return title

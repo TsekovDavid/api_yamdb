@@ -2,8 +2,9 @@ from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
 from .views import (
-    category_delete, CategoryViewSet, genre_delete, GenreViewSet, TitleViewSet
+    CategoryViewSet, category_delete, GenreViewSet, genre_delete, TitleViewSet
 )
+
 
 router = SimpleRouter()
 
