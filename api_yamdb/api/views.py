@@ -56,11 +56,28 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
-    # permission_classes = (AdminPermission,)
+    permission_classes = (AdminPermission,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
 
     def perform_create(self, serializer):
+        category_slug = self.request.data.get('category')
+        if Category.objects.filter(slug=category_slug).exists():
+            category = Category.objects.get(slug=category_slug)
+        else:
+            raise serializers.ValidationError(
+                'Введите существующую категорию!'
+            )
+        genre_slugs = self.request.data.get('genre')
+        genre = []
+        for genre_slug in genre_slugs:
+            if Genre.objects.filter(slug=genre_slug).exists():
+                genre.append(Genre.objects.get(slug=genre_slug))
+            else:
+                raise serializers.ValidationError('Введите существующий жанр!')
+        serializer.save(category=category, genre=genre)
+
+    def perform_update(self, serializer):
         category_slug = self.request.data.get('category')
         if Category.objects.filter(slug=category_slug).exists():
             category = Category.objects.get(slug=category_slug)
