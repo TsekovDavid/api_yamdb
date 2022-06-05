@@ -5,12 +5,15 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from reviews.models import Category, Genre, Review, Title
+from reviews.models import (
+    Category, Comment, Genre, Review, Title
+)
 
 from .filters import TitleFilter
 from .permissions import AdminPermission
 from .serializers import (
-    CategorySerializer, GenreSerializer, ReviewSerializer, TitleSerializer
+    CategorySerializer, CommentSerializer, GenreSerializer,
+    ReviewSerializer, TitleSerializer
 )
 from .viewsets import CreateRetrieveListViewSet
 
@@ -113,4 +116,24 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.save(
             author=self.request.user,
             title=get_object_or_404(Title, pk=pk)
+        )
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    pagination_class = PageNumberPagination
+    # permission_classes = настроить для разных запросов
+
+    def get_queryset(self):
+        pk = self.kwargs.get("review_id")
+        review = get_object_or_404(Review, pk=pk)
+        new_queryset = review.comments.all()
+        return new_queryset
+
+    def perform_create(self, serializer):
+        pk = self.kwargs.get("title_id")
+        serializer.save(
+            author=self.request.user,
+            review=get_object_or_404(Review, pk=pk)
         )
