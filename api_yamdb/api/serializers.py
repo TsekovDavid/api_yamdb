@@ -30,7 +30,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
     def validate_username(self, value):
         if value == 'me':
-            raise serializers.ValidationError(MESSAGE.format(value=value))
+            raise serializers.ValidationError(MESSAGE.format(name=value))
         return value
 
 
@@ -42,7 +42,7 @@ class SignupSerializer(serializers.ModelSerializer):
 
     def validate_username(self, value):
         if value == 'me':
-            raise serializers.ValidationError(MESSAGE.format(value=value))
+            raise serializers.ValidationError(MESSAGE.format(name=value))
         return value
 
 
