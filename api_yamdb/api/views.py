@@ -14,10 +14,9 @@ from api_yamdb.settings import ADMIN_EMAIL
 from reviews.models import (Category, Comment, Genre, Review, Title, User)
 from .filters import TitleFilter
 from .permissions import IsAdmin, AdminPermission
-from .serializers import (
-    CategorySerializer, CommentSerializer, GenreSerializer,
-    ReviewSerializer, SignupSerializer, TitleSerializer, TokenSerializer, UserSerializer
-)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, ReviewSerializer, SignupSerializer,
+                          TitleSerializer, TokenSerializer, UserSerializer)
 from .viewsets import CreateRetrieveListViewSet
 
 
