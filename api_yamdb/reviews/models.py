@@ -43,24 +43,24 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField(max_length=256)
-    year = models.PositiveSmallIntegerField(
-        blank=True,
-        null=True,
-    )
+    year = models.PositiveSmallIntegerField()
     description = models.TextField(blank=True)
     genre = models.ManyToManyField(
         Genre,
-        through='GenreTitle'
+        through='GenreTitle',
+        blank=True,
+        related_name='titles',
     )
     category = models.ForeignKey(
         Category,
-        on_delete=models.SET_NULL,
+        models.SET_NULL,
         blank=True,
         null=True,
+        related_name='titles',
     )
     rating = models.PositiveSmallIntegerField(
         blank=True,
-        null=True,
+        null=True
     )
 
     def __str__(self):
@@ -79,3 +79,24 @@ class GenreTitle(models.Model):
 
     def __str__(self):
         return f'{self.genre} {self.title}'
+
+
+class Review(models.Model):
+    text = models.TextField()
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='reviews')
+    title = models.ForeignKey(
+        Title, on_delete=models.CASCADE, related_name='reviews')
+    pub_date = models.DateTimeField(
+        auto_now_add=True, db_index=True)
+    score = models.PositiveSmallIntegerField()
+
+
+class Comment(models.Model):
+    text = models.TextField()
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='comments')
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE, related_name='comments')
+    pub_date = models.DateTimeField(
+        auto_now_add=True, db_index=True)
