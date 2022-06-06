@@ -1,7 +1,9 @@
 from datetime import date
+
 from rest_framework import serializers
 
-from reviews.models import (Category, Comment, Genre, GenreTitle, Review, Title, User)
+from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
+                            Title, User)
 
 
 MESSAGE = 'Имя пользователя "{name}" использовать нельзя!'
@@ -45,7 +47,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
     # убрать рейтинг из модели и вычислять здесь
     # def get_rating(self, obj):
-    #     return ... 
+    #     return ...
 
 
 class ReviewSerializer(serializers.ModelSerializer):
