@@ -24,11 +24,11 @@ class CategoryViewSet(CreateRetrieveListViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (AdminPermission,)
+    # permission_classes = (AdminPermission,)
 
 
 @api_view(['DELETE'])
-@permission_classes([AdminPermission])
+# @permission_classes([AdminPermission])
 def category_delete(request, slug):
     if Category.objects.filter(slug=slug).exists():
         Category.objects.filter(slug=slug).delete()
@@ -43,11 +43,11 @@ class GenreViewSet(CreateRetrieveListViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (AdminPermission,)
+    # permission_classes = (AdminPermission,)
 
 
 @api_view(['DELETE'])
-@permission_classes([AdminPermission])
+# @permission_classes([AdminPermission])
 def genre_delete(request, slug):
     if Genre.objects.filter(slug=slug).exists():
         Genre.objects.filter(slug=slug).delete()
@@ -60,7 +60,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (AdminPermission,)
+    # permission_classes = (AdminPermission,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
 
@@ -113,9 +113,14 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         pk = self.kwargs.get("title_id")
+        title = get_object_or_404(Title, pk=pk)
+        if Review.objects.filter(author=self.request.user, title=title).exists():
+            raise serializers.ValidationError(
+                'Вы уже оставляли отзыв на это произведение!'
+            )
         serializer.save(
             author=self.request.user,
-            title=get_object_or_404(Title, pk=pk)
+            title=title
         )
 
 

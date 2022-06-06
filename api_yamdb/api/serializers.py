@@ -1,5 +1,6 @@
 from datetime import date
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from reviews.models import (
     Category, Comment, Genre, GenreTitle, Review, Title
@@ -55,6 +56,13 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
+
+        # validators = [
+        #     UniqueTogetherValidator(
+        #         queryset=Review.objects.all(),
+        #         fields=('title', 'author')
+        #     )
+        # ]
 
     def validate_score(self, value):
         if not (1 <= value <= 10):
