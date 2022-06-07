@@ -1,3 +1,4 @@
+from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.http import QueryDict
@@ -60,7 +61,8 @@ def genre_delete(request, slug):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
+    queryset = Title.objects.all().annotate(
+        rating=Avg('reviews__score')).order_by('id')
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
     permission_classes = (IsAdminOrReadOnly,)
@@ -75,7 +77,7 @@ class TitleViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(
                 'Введите существующую категорию!'
             )
-            
+
         # в pytest получаем входные данные типа QueryDict, в Postman - dict
         if not isinstance(self.request.data, QueryDict):
             genre_slugs = self.request.data.get('genre')
@@ -116,7 +118,6 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
     permission_classes = (IsUserOrReadOnly,)
@@ -141,7 +142,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
     permission_classes = (IsUserOrReadOnly,)
@@ -153,7 +153,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         return new_queryset
 
     def perform_create(self, serializer):
-        pk = self.kwargs.get("title_id")
+        pk = self.kwargs.get("review_id")
         serializer.save(
             author=self.request.user,
             review=get_object_or_404(Review, pk=pk)

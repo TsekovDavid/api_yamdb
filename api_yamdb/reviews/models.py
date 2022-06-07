@@ -58,10 +58,10 @@ class Title(models.Model):
         null=True,
         related_name='titles',
     )
-    rating = models.PositiveSmallIntegerField(
-        blank=True,
-        null=True
-    )
+    # rating = models.PositiveSmallIntegerField(
+    #     blank=True,
+    #     null=True
+    # )
 
     def __str__(self):
         return self.name
