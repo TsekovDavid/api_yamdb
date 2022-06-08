@@ -29,16 +29,26 @@ class Category(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True)
 
+    class Meta:
+        ordering = ("name",)
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+
     def __str__(self):
-        return self.name
+        return self.name[:20]
 
 
 class Genre(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True)
 
+    class Meta:
+        ordering = ("name",)
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
+
     def __str__(self):
-        return self.name
+        return self.name[:20]
 
 
 class Title(models.Model):
@@ -58,13 +68,14 @@ class Title(models.Model):
         null=True,
         related_name='titles',
     )
-    rating = models.PositiveSmallIntegerField(
-        blank=True,
-        null=True
-    )
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
 
     def __str__(self):
-        return self.name
+        return self.name[:20]
 
 
 class GenreTitle(models.Model):
@@ -92,12 +103,18 @@ class Review(models.Model):
     score = models.PositiveSmallIntegerField()
 
     class Meta:
+        ordering = ("-pub_date",)
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
         constraints = [
             models.UniqueConstraint(
                 fields=['title', 'author'],
                 name='unique_title_author'
             )
         ]
+
+    def __str__(self):
+        return self.text[:80]
 
 
 class Comment(models.Model):
@@ -108,3 +125,11 @@ class Comment(models.Model):
         Review, on_delete=models.CASCADE, related_name='comments')
     pub_date = models.DateTimeField(
         auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-pub_date",)
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
+
+    def __str__(self):
+        return self.text[:80]
