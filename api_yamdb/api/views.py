@@ -1,6 +1,6 @@
-from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db.models import Avg
 from django.http import QueryDict
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -13,9 +13,10 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import ADMIN_EMAIL
-from reviews.models import (Category, Comment, Genre, Review, Title, User)
+from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsAdminOrReadOnly, IsUserOrReadOnly
+from .permissions import (IsAdmin, IsAdminOrReadOnly,
+                          IsStaffOrAuthorOrReadOnly, ReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
                           TitleSerializer, TokenSerializer, UserSerializer)
@@ -113,14 +114,21 @@ class TitleViewSet(viewsets.ModelViewSet):
                 if Genre.objects.filter(slug=genre_slug).exists():
                     genre.append(Genre.objects.get(slug=genre_slug))
                 else:
-                    raise serializers.ValidationError('Введите существующий жанр!')
+                    raise serializers.ValidationError(
+                        'Введите существующий жанр!'
+                    )
             serializer.save(genre=genre)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsUserOrReadOnly,)
+    permission_classes = (IsStaffOrAuthorOrReadOnly,)
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return (ReadOnly(),)
+        return super().get_permissions()
 
     def get_queryset(self):
         pk = self.kwargs.get("title_id")
@@ -131,20 +139,23 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         pk = self.kwargs.get("title_id")
         title = get_object_or_404(Title, pk=pk)
-        if Review.objects.filter(author=self.request.user, title=title).exists():
+        if Review.objects.filter(
+                author=self.request.user, title=title).exists():
             raise serializers.ValidationError(
                 'Вы уже оставляли отзыв на это произведение!'
             )
-        serializer.save(
-            author=self.request.user,
-            title=title
-        )
+        serializer.save(author=self.request.user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsUserOrReadOnly,)
+    permission_classes = (IsStaffOrAuthorOrReadOnly,)
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return (ReadOnly(),)
+        return super().get_permissions()
 
     def get_queryset(self):
         pk = self.kwargs.get("review_id")
