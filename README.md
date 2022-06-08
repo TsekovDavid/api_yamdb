@@ -1,3 +1,5 @@
+# Проект YaMDb - сервис отзывов на произведения
+
 ### Авторы:
 - Цеков Давид - https://github.com/TsekovDavid
 - Позднышева Наталья - https://github.com/pozdnysheva/
