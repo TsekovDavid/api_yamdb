@@ -1,11 +1,8 @@
 from datetime import date
 
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, User)
-
 
 MESSAGE = 'Имя пользователя "{name}" использовать нельзя!'
 
@@ -25,13 +22,14 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
+    rating = serializers.IntegerField(read_only=True)
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(many=True, read_only=True)
 
     class Meta:
         model = Title
-        fields = '__all__'
-        read_only_fields = ('rating',)
+        fields = ('id', 'rating', 'name',
+                  'year', 'description', 'genre', 'category')
 
     def create(self, validated_data):
         genres = validated_data.pop('genre')
@@ -46,10 +44,6 @@ class TitleSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Проверьте год выпуска!')
         return value
 
-    # убрать рейтинг из модели и вычислять здесь
-    # def get_rating(self, obj):
-    #     return ...
-
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
@@ -59,13 +53,6 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
-
-        # validators = [
-        #     UniqueTogetherValidator(
-        #         queryset=Review.objects.all(),
-        #         fields=('title', 'author')
-        #     )
-        # ]
 
     def validate_score(self, value):
         if not (1 <= value <= 10):
