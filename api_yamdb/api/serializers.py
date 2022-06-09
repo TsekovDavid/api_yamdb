@@ -1,5 +1,3 @@
-from datetime import date
-
 from rest_framework import serializers
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, User)
@@ -38,12 +36,6 @@ class TitleSerializer(serializers.ModelSerializer):
             GenreTitle.objects.create(title=title, genre=genre)
         return title
 
-    def validate_year(self, value):
-        year = date.today().year
-        if not (value <= year):
-            raise serializers.ValidationError('Проверьте год выпуска!')
-        return value
-
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
@@ -53,13 +45,6 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
-
-    def validate_score(self, value):
-        if not (1 <= value <= 10):
-            raise serializers.ValidationError(
-                'Оценка должна быть целым числом от 1 до 10!'
-            )
-        return value
 
 
 class CommentSerializer(serializers.ModelSerializer):
