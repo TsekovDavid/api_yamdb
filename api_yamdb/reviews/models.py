@@ -25,30 +25,27 @@ class User(AbstractUser):
         return self.username[:20]
 
 
-class Category(models.Model):
+class CategoryGenreBase(models.Model):
     name = models.CharField(max_length=256)
-    slug = models.SlugField(unique=True)
-
+    slug = models.SlugField(unique=True, max_length=50)
     class Meta:
-        ordering = ("name",)
+        abstract = True
+        ordering = ('name',)
+
+    def __str__(self):
+        return self.name[:20]
+
+
+class Category(CategoryGenreBase):
+    class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
-    def __str__(self):
-        return self.name[:20]
 
-
-class Genre(models.Model):
-    name = models.CharField(max_length=256)
-    slug = models.SlugField(unique=True)
-
+class Genre(CategoryGenreBase):
     class Meta:
-        ordering = ("name",)
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
-
-    def __str__(self):
-        return self.name[:20]
 
 
 class Title(models.Model):
@@ -70,7 +67,7 @@ class Title(models.Model):
     )
 
     class Meta:
-        ordering = ("name",)
+        ordering = ('name',)
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
 
@@ -103,7 +100,7 @@ class Review(models.Model):
     score = models.PositiveSmallIntegerField()
 
     class Meta:
-        ordering = ("-pub_date",)
+        ordering = ('-pub_date',)
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
         constraints = [
@@ -127,7 +124,7 @@ class Comment(models.Model):
         auto_now_add=True, db_index=True)
 
     class Meta:
-        ordering = ("-pub_date",)
+        ordering = ('-pub_date',)
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
 
