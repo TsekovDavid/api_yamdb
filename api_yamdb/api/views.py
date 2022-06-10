@@ -66,15 +66,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
             return (ReadOnly(),)
         return super().get_permissions()
 
-    def get_queryset(self):
+    @property
+    def title(self):
         pk = self.kwargs.get("title_id")
-        title = get_object_or_404(Title, pk=pk)
-        return title.reviews.all()
+        return get_object_or_404(Title, pk=pk)
+
+    def get_queryset(self):
+        return self.title.reviews.all()
 
     def perform_create(self, serializer):
-        pk = self.kwargs.get("title_id")
-        title = get_object_or_404(Title, pk=pk)
-        serializer.save(author=self.request.user, title=title)
+        serializer.save(author=self.request.user, title=self.title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -87,16 +88,18 @@ class CommentViewSet(viewsets.ModelViewSet):
             return (ReadOnly(),)
         return super().get_permissions()
 
-    def get_queryset(self):
+    @property
+    def review(self):
         pk = self.kwargs.get("review_id")
-        review = get_object_or_404(Review, pk=pk)
-        return review.comments.all()
+        return get_object_or_404(Review, pk=pk)
+
+    def get_queryset(self):
+        return self.review.comments.all()
 
     def perform_create(self, serializer):
-        pk = self.kwargs.get("review_id")
         serializer.save(
             author=self.request.user,
-            review=get_object_or_404(Review, pk=pk)
+            review=self.review
         )
 
 
