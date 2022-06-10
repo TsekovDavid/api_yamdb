@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, serializers, status, viewsets
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
@@ -18,47 +18,27 @@ from .permissions import (IsAdmin, IsAdminOrReadOnly,
                           IsStaffOrAuthorOrReadOnly, ReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
-                          TitleSerializer, TitleCreateUpdateSerializer,
+                          TitleCreateUpdateSerializer, TitleSerializer,
                           TokenSerializer, UserSerializer)
 from .viewsets import CreateRetrieveListViewSet
 
 
-class CategoryViewSet(CreateRetrieveListViewSet):
+class CategoryGenreViewSet(CreateRetrieveListViewSet):
+    pagination_class = PageNumberPagination
+    filter_backends = (SearchFilter,)
+    search_fields = ('name',)
+    permission_classes = (IsAdminOrReadOnly,)
+    lookup_field = 'slug'
+
+
+class CategoryViewSet(CategoryGenreViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    pagination_class = PageNumberPagination
-    filter_backends = (SearchFilter,)
-    search_fields = ('name',)
-    permission_classes = (IsAdminOrReadOnly,)
 
 
-@api_view(['DELETE'])
-@permission_classes([IsAdminOrReadOnly])
-def category_delete(request, slug):
-    if Category.objects.filter(slug=slug).exists():
-        Category.objects.filter(slug=slug).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    else:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-
-class GenreViewSet(CreateRetrieveListViewSet):
+class GenreViewSet(CategoryGenreViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    pagination_class = PageNumberPagination
-    filter_backends = (SearchFilter,)
-    search_fields = ('name',)
-    permission_classes = (IsAdminOrReadOnly,)
-
-
-@api_view(['DELETE'])
-@permission_classes([IsAdminOrReadOnly])
-def genre_delete(request, slug):
-    if Genre.objects.filter(slug=slug).exists():
-        Genre.objects.filter(slug=slug).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    else:
-        return Response(status=status.HTTP_404_NOT_FOUND)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
@@ -94,11 +74,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         pk = self.kwargs.get("title_id")
         title = get_object_or_404(Title, pk=pk)
-        if Review.objects.filter(
-                author=self.request.user, title=title).exists():
-            raise serializers.ValidationError(
-                'Вы уже оставляли отзыв на это произведение!'
-            )
         serializer.save(author=self.request.user, title=title)
 
 
