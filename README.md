@@ -1,8 +1,8 @@
 # Проект YaMDb - сервис отзывов на произведения
 
 ### Авторы:
-- Цеков Давид - https://github.com/TsekovDavid
-- Позднышева Наталья - https://github.com/pozdnysheva/
+- https://github.com/TsekovDavid
+- https://github.com/pozdnysheva/
 
 ### Технологии:
 - Python
@@ -14,7 +14,7 @@
 * Добавлять, изменять и удалять собственные отзывы
 * Оставлять комментарии к отзывам
 
-#### Документация по адресу:
+#### Документация доступна после запуска сервера по адресу:
 ```
 http://localhost:8000/redoc/
 ```
@@ -27,7 +27,7 @@ git clone https://github.com/yandex-praktikum/api_yamdb.git
 ```
 
 ```
-cd api_final_yatube
+cd api_yamdb
 ```
 
 Cоздать и активировать виртуальное окружение:
