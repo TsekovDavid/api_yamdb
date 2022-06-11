@@ -3,12 +3,14 @@ from rest_framework import serializers
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, User)
 
+
 class ValidateUsername:
     def validate(self, data):
         if data.get('username') == 'me':
             raise serializers.ValidationError(
                 'Имя пользователя "me" использовать нельзя!')
         return data
+
 
 class CategorySerializer(serializers.ModelSerializer):
 

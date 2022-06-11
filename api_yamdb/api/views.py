@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -15,7 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api_yamdb.settings import ADMIN_EMAIL
 from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from .permissions import IsAdmin, ReadOnly, IsAuthor, IsModerator
+from .permissions import IsAdmin, IsAuthor, IsModerator, ReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
                           TitleCreateUpdateSerializer, TitleSerializer,
@@ -62,7 +62,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     permission_classes = (IsAdmin | IsAuthor | IsModerator | ReadOnly,)
 
-
     @property
     def title(self):
         pk = self.kwargs.get("title_id")
@@ -79,7 +78,6 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
     permission_classes = (IsAdmin | IsAuthor | IsModerator | ReadOnly,)
-
 
     @property
     def review(self):
@@ -127,14 +125,16 @@ def generate_confirmation_code(username):
     user.confirmation_code = confirmation_code
     user.save()
 
+
 def send_confirmation_code(username):
     user = get_object_or_404(User, username=username)
     generate_confirmation_code(username)
     subject = 'Код подтверждения'
-    message = f'{user.confirmation_code} - Используйте для авторизации на сайте'
+    message = f'{user.confirmation_code} - Код для авторизации на сайте'
     admin_email = ADMIN_EMAIL
     user_email = [user.email]
     send_mail(subject, message, admin_email, user_email)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -170,7 +170,8 @@ def signup(request):
             send_confirmation_code(username)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(
-            'Имя пользователя "me" использовать нельзя!', status=status.HTTP_400_BAD_REQUEST
+            'Имя пользователя "me" использовать нельзя!',
+            status=status.HTTP_400_BAD_REQUEST
         )
     user = get_object_or_404(User, username=username)
     serializer = SignupSerializer(
@@ -182,5 +183,6 @@ def signup(request):
         send_confirmation_code(username)
         return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(
-        'Проверьте, правильно ли указалипочту!', status=status.HTTP_400_BAD_REQUEST
+        'Проверьте, правильно ли указалипочту!',
+        status=status.HTTP_400_BAD_REQUEST
     )
