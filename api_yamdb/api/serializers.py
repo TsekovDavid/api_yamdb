@@ -1,5 +1,3 @@
-from datetime import date
-
 from rest_framework import serializers
 
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
@@ -32,18 +30,30 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = ('id', 'rating', 'name',
                   'year', 'description', 'genre', 'category')
 
+
+class TitleCreateUpdateSerializer(serializers.ModelSerializer):
+    rating = serializers.IntegerField(read_only=True)
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+    genre = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Genre.objects.all(),
+        many=True
+    )
+
+    class Meta:
+        model = Title
+        fields = ('id', 'rating', 'name',
+                  'year', 'description', 'genre', 'category')
+
     def create(self, validated_data):
         genres = validated_data.pop('genre')
         title = Title.objects.create(**validated_data)
         for genre in genres:
             GenreTitle.objects.create(title=title, genre=genre)
         return title
-
-    def validate_year(self, value):
-        year = date.today().year
-        if not (value <= year):
-            raise serializers.ValidationError('Проверьте год выпуска!')
-        return value
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -55,12 +65,17 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date')
 
-    def validate_score(self, value):
-        if not (1 <= value <= 10):
+    def validate(self, data):
+        title = self.context.get('view').kwargs.get('title_id')
+        author = self.context.get('request').user
+        if (
+            self.context.get('request').method == 'POST'
+            and Review.objects.filter(author=author, title=title).exists()
+        ):
             raise serializers.ValidationError(
-                'Оценка должна быть целым числом от 1 до 10!'
+                'Вы уже оставляли отзыв на это произведение!'
             )
-        return value
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
