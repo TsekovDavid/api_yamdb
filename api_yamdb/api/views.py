@@ -183,6 +183,6 @@ def signup(request):
         send_confirmation_code(username)
         return Response(serializer.data, status=status.HTTP_200_OK)
     return Response(
-        'Проверьте, правильно ли указалипочту!',
+        'Проверьте, правильно ли указали почту!',
         status=status.HTTP_400_BAD_REQUEST
     )
