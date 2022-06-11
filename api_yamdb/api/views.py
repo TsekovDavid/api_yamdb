@@ -1,11 +1,12 @@
-from django.contrib.auth.tokens import default_token_generator
+import uuid
+
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -14,8 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api_yamdb.settings import ADMIN_EMAIL
 from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from .permissions import (IsAdmin, IsAdminOrReadOnly,
-                          IsStaffOrAuthorOrReadOnly, ReadOnly)
+from .permissions import IsAdmin, ReadOnly, IsAuthor, IsModerator
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
                           TitleCreateUpdateSerializer, TitleSerializer,
@@ -27,7 +27,7 @@ class CategoryGenreViewSet(CreateRetrieveListViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsAdminOrReadOnly,)
+    permission_classes = (IsAdmin | ReadOnly,)
     lookup_field = 'slug'
 
 
@@ -43,12 +43,13 @@ class GenreViewSet(CategoryGenreViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all().annotate(
-        rating=Avg('reviews__score')).order_by('id')
+        rating=Avg('reviews__score')).all()
     serializer_class = TitleSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (DjangoFilterBackend,)
+    permission_classes = (IsAdmin | ReadOnly,)
+    filter_backends = (DjangoFilterBackend, OrderingFilter,)
     filterset_class = TitleFilter
+    ordering = ('name',)
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
@@ -59,12 +60,8 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsStaffOrAuthorOrReadOnly,)
+    permission_classes = (IsAdmin | IsAuthor | IsModerator | ReadOnly,)
 
-    def get_permissions(self):
-        if self.action == 'retrieve':
-            return (ReadOnly(),)
-        return super().get_permissions()
 
     @property
     def title(self):
@@ -81,12 +78,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsStaffOrAuthorOrReadOnly,)
+    permission_classes = (IsAdmin | IsAuthor | IsModerator | ReadOnly,)
 
-    def get_permissions(self):
-        if self.action == 'retrieve':
-            return (ReadOnly(),)
-        return super().get_permissions()
 
     @property
     def review(self):
@@ -116,64 +109,78 @@ class UserViewSet(viewsets.ModelViewSet):
         methods=['GET', 'PATCH'],
         permission_classes=(IsAuthenticated,))
     def me(self, request):
-        serializer = UserSerializer(request.user)
+        user = get_object_or_404(User, pk=request.user.id)
+        serializer = UserSerializer(user)
         if request.method == 'PATCH':
             serializer = UserSerializer(
-                request.user, data=request.data, partial=True
+                user, data=request.data, partial=True
             )
             serializer.is_valid(raise_exception=True)
-            serializer.save(role=request.user.role)
+            serializer.save(role=user.role)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def signup(request):
-    serializer = SignupSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        send_confirmation_code(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+def generate_confirmation_code(username):
+    user = get_object_or_404(User, username=username)
+    confirmation_code = str(uuid.uuid3(uuid.NAMESPACE_DNS, user.username))
+    user.confirmation_code = confirmation_code
+    user.save()
 
+def send_confirmation_code(username):
+    user = get_object_or_404(User, username=username)
+    generate_confirmation_code(username)
+    subject = 'Код подтверждения'
+    message = f'{user.confirmation_code} - Используйте для авторизации на сайте'
+    admin_email = ADMIN_EMAIL
+    user_email = [user.email]
+    send_mail(subject, message, admin_email, user_email)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def token(request):
     serializer = TokenSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    username = serializer.data['username']
-    user = get_object_or_404(User, username=username)
-    confirmation_code = serializer.data['confirmation_code']
-    if not default_token_generator.check_token(user, confirmation_code):
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    token = RefreshToken.for_user(user)
+    serializer.is_valid(raise_exception=True)
+    username = serializer.validated_data['username']
+    confirmation_code = serializer.validated_data['confirmation_code']
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response(
+            'Пользователь не найден', status=status.HTTP_404_NOT_FOUND
+        )
+    if user.confirmation_code == confirmation_code:
+        refresh = RefreshToken.for_user(user)
+        token_data = {'token': str(refresh.access_token)}
+        return Response(token_data, status=status.HTTP_200_OK)
     return Response(
-        {'token': str(token.access_token)}, status=status.HTTP_200_OK
+        'Код подтверждения неверный', status=status.HTTP_400_BAD_REQUEST
     )
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def code(request):
-    serializer = UserSerializer(data=request.data)
-    if serializer.is_valid():
-        username = serializer.data['username']
-        email = serializer.data['email']
-        user = get_object_or_404(User, username=username, email=email)
-        send_confirmation_code(user)
+def signup(request):
+    username = request.data.get('username')
+    if not User.objects.filter(username=username).exists():
+        serializer = SignupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data['username'] != 'me':
+            serializer.save()
+            send_confirmation_code(username)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            'Имя пользователя "me" использовать нельзя!', status=status.HTTP_400_BAD_REQUEST
+        )
+    user = get_object_or_404(User, username=username)
+    serializer = SignupSerializer(
+        user, data=request.data, partial=True
+    )
+    serializer.is_valid(raise_exception=True)
+    if serializer.validated_data['email'] == user.email:
+        serializer.save()
+        send_confirmation_code(username)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-def send_confirmation_code(user):
-    confirmation_code = default_token_generator.make_token(user)
-    subject = 'Код подтверждения'
-    message = f'{confirmation_code} - Используйте для авторизации на сайте'
-    admin_email = ADMIN_EMAIL
-    user_email = [user.email]
-    return send_mail(subject, message, admin_email, user_email)
+    return Response(
+        'Проверьте, правильно ли указалипочту!', status=status.HTTP_400_BAD_REQUEST
+    )
