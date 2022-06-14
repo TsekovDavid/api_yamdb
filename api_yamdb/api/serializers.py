@@ -2,14 +2,7 @@ from rest_framework import serializers
 
 from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
                             Title, User)
-
-
-class ValidateUsername:
-    def validate(self, data):
-        if data.get('username') == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" использовать нельзя!')
-        return data
+from reviews.validators import validate_username
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -104,14 +97,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class SignupSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=254)
-    username = serializers.CharField(max_length=150)
-
-    def validate_username(self, name):
-        if name == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" использовать нельзя!')
-        return name
+    email = serializers.EmailField(required=True, max_length=254)
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[validate_username]
+    )
 
     def validate(self, data):
         username = data.get('username')
@@ -134,14 +125,9 @@ class SignupSerializer(serializers.Serializer):
 
 
 class TokenSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True, max_length=150)
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[validate_username]
+    )
     confirmation_code = serializers.CharField(required=True, max_length=150)
-
-    def validate(self, data):
-        username = data.get('username')
-        confirmation_code = data.get('confirmation_code')
-        if username is None:
-            raise serializers.ValidationError('Введите имя пользователя!')
-        if confirmation_code is None:
-            raise serializers.ValidationError('Введите код подтверждения!')
-        return data

@@ -49,7 +49,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (DjangoFilterBackend, OrderingFilter,)
     filterset_class = TitleFilter
-    ordering = ('name',)
+    ordering = ('rating')
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
@@ -64,7 +64,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     @property
     def title(self):
-        pk = self.kwargs.get("title_id")
+        pk = self.kwargs.get('title_id')
         return get_object_or_404(Title, pk=pk)
 
     def get_queryset(self):
@@ -81,7 +81,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     @property
     def review(self):
-        pk = self.kwargs.get("review_id")
+        pk = self.kwargs.get('review_id')
         return get_object_or_404(Review, pk=pk)
 
     def get_queryset(self):

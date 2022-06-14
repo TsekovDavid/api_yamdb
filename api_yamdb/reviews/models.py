@@ -2,12 +2,10 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from .validators import validate_year
+from .validators import validate_year, validate_username
 
 
 class User(AbstractUser):
-    """Расширяет пользовательскую модель полями bio и role"""
-
     USER = 'user'
     MODER = 'moderator'
     ADMIN = 'admin'
@@ -17,12 +15,19 @@ class User(AbstractUser):
         (ADMIN, 'Администратор'),
     ]
 
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=[validate_username])
     first_name = models.CharField('Имя', max_length=150, blank=True)
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
     email = models.EmailField('Почта', unique=True, max_length=254)
     bio = models.TextField('Биография', blank=True,)
     role = models.CharField(
-        'Роль', max_length=9, choices=ROLES, default=USER
+        'Роль',
+        max_length=len(max(list(list(zip(*ROLES))[0]), key=len)),
+        choices=ROLES,
+        default=USER
     )
     confirmation_code = models.CharField(
         max_length=150,
@@ -41,10 +46,6 @@ class User(AbstractUser):
     @property
     def is_moderator(self):
         return (self.role == self.MODER or self.is_staff)
-
-    # @property
-    # def is_user(self):
-    #     return self.role == self.USER
 
     def __str__(self):
         return self.username[:20]
