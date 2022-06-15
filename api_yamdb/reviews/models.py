@@ -57,21 +57,20 @@ class CategoryGenreBase(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('name',)
 
     def __str__(self):
         return self.name[:20]
 
 
 class Category(CategoryGenreBase):
-    class Meta:
-        ordering = ('name',)
+    class Meta(CategoryGenreBase.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
 
 
 class Genre(CategoryGenreBase):
-    class Meta:
-        ordering = ('name',)
+    class Meta(CategoryGenreBase.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
 
@@ -120,12 +119,13 @@ class GenreTitle(models.Model):
 class CommentReviewBase(models.Model):
     text = models.TextField()
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='%(class)s')
+        User, on_delete=models.CASCADE, related_name='%(class)ss')
     pub_date = models.DateTimeField(
         auto_now_add=True, db_index=True)
 
     class Meta:
         abstract = True
+        ordering = ('-pub_date',)
 
     def __str__(self):
         return self.text[:80]
@@ -138,8 +138,7 @@ class Review(CommentReviewBase):
         validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
 
-    class Meta:
-        ordering = ('-pub_date',)
+    class Meta(CommentReviewBase.Meta):
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
         constraints = [
@@ -154,7 +153,6 @@ class Comment(CommentReviewBase):
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
 
-    class Meta:
-        ordering = ('-pub_date',)
+    class Meta(CommentReviewBase.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
