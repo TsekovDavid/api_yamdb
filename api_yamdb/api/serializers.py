@@ -1,15 +1,8 @@
 from rest_framework import serializers
 
-from reviews.models import (Category, Comment, Genre, GenreTitle, Review,
+from reviews.models import (Category, Comment, Genre, Review,
                             Title, User)
-
-
-class ValidateUsername:
-    def validate(self, data):
-        if data.get('username') == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" использовать нельзя!')
-        return data
+from reviews.validators import validate_username
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -33,8 +26,12 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('id', 'rating', 'name',
-                  'year', 'description', 'genre', 'category')
+        fields = (
+            'id', 'rating', 'name', 'year', 'description', 'genre', 'category'
+        )
+        read_only_fields = (
+            'id', 'rating', 'name', 'year', 'description', 'genre', 'category'
+        )
 
 
 class TitleCreateUpdateSerializer(serializers.ModelSerializer):
@@ -53,13 +50,6 @@ class TitleCreateUpdateSerializer(serializers.ModelSerializer):
         model = Title
         fields = ('id', 'rating', 'name',
                   'year', 'description', 'genre', 'category')
-
-    def create(self, validated_data):
-        genres = validated_data.pop('genre')
-        title = Title.objects.create(**validated_data)
-        for genre in genres:
-            GenreTitle.objects.create(title=title, genre=genre)
-        return title
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -103,13 +93,38 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
 
-class SignupSerializer(serializers.ModelSerializer):
+class SignupSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, max_length=254)
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[validate_username]
+    )
 
-    class Meta:
-        model = User
-        fields = ('username', 'email',)
+    def validate(self, data):
+        username = data.get('username')
+        email = data.get('email')
+        if (
+            User.objects.filter(username=username).exists()
+            and User.objects.get(username=username).email != email
+        ):
+            raise serializers.ValidationError(
+                'Пользователь с такой почтой уже зарегистрирован!'
+            )
+        if (
+            User.objects.filter(email=email).exists()
+            and User.objects.get(email=email).username != username
+        ):
+            raise serializers.ValidationError(
+                'Пользователь с таким ником уже зарегистрирован!'
+            )
+        return data
 
 
 class TokenSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True, max_length=150)
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[validate_username]
+    )
     confirmation_code = serializers.CharField(required=True, max_length=150)
