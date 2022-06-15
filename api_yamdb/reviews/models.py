@@ -2,12 +2,10 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from .validators import validate_year
+from .validators import validate_year, validate_username
 
 
 class User(AbstractUser):
-    """Расширяет пользовательскую модель полями bio и role"""
-
     USER = 'user'
     MODER = 'moderator'
     ADMIN = 'admin'
@@ -17,12 +15,19 @@ class User(AbstractUser):
         (ADMIN, 'Администратор'),
     ]
 
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=[validate_username])
     first_name = models.CharField('Имя', max_length=150, blank=True)
     last_name = models.CharField('Фамилия', max_length=150, blank=True)
     email = models.EmailField('Почта', unique=True, max_length=254)
     bio = models.TextField('Биография', blank=True,)
     role = models.CharField(
-        'Роль', max_length=9, choices=ROLES, default=USER
+        'Роль',
+        max_length=len(max(list(list(zip(*ROLES))[0]), key=len)),
+        choices=ROLES,
+        default=USER
     )
     confirmation_code = models.CharField(
         max_length=150,
@@ -36,43 +41,45 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return self.role == self.ADMIN
+        return (self.role == self.ADMIN or self.is_staff)
 
     @property
     def is_moderator(self):
-        return self.role == self.MODER
-
-    @property
-    def is_user(self):
-        return self.role == self.USER
+        return (self.role == self.MODER or self.is_staff)
 
     def __str__(self):
         return self.username[:20]
 
 
-class CategoryGenreBase(models.Model):
+# class CategoryGenreBase(models.Model):
+#     name = models.CharField(max_length=256)
+#     slug = models.SlugField(unique=True, max_length=50)
+
+#     class Meta:
+#         abstract = True
+#         ordering = ('name',)
+
+#     def __str__(self):
+#         return self.name[:20]
+
+
+class Category(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True, max_length=50)
-
+    
     class Meta:
-        abstract = True
-
-    def __str__(self):
-        return self.name[:20]
-
-
-class Category(CategoryGenreBase):
-    class Meta:
-        ordering = ('name',)
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
-
-
-class Genre(CategoryGenreBase):
-    class Meta:
         ordering = ('name',)
+
+class Genre(models.Model):
+    name = models.CharField(max_length=256)
+    slug = models.SlugField(unique=True, max_length=50)
+    
+    class Meta:
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
+        ordering = ('name',)
 
 
 class Title(models.Model):
@@ -119,12 +126,13 @@ class GenreTitle(models.Model):
 class CommentReviewBase(models.Model):
     text = models.TextField()
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='%(class)s')
+        User, on_delete=models.CASCADE, related_name='%(class)ss')
     pub_date = models.DateTimeField(
         auto_now_add=True, db_index=True)
 
     class Meta:
         abstract = True
+        ordering = ('-pub_date',)
 
     def __str__(self):
         return self.text[:80]
@@ -137,8 +145,7 @@ class Review(CommentReviewBase):
         validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
 
-    class Meta:
-        ordering = ('-pub_date',)
+    class Meta(CommentReviewBase.Meta):
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
         constraints = [
@@ -153,7 +160,6 @@ class Comment(CommentReviewBase):
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
 
-    class Meta:
-        ordering = ('-pub_date',)
+    class Meta(CommentReviewBase.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'

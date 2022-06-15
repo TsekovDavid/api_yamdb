@@ -15,15 +15,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api_yamdb.settings import ADMIN_EMAIL
 from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsAuthor, IsModerator, ReadOnly
+from .permissions import AuthorOrAdminOrReadOnly, IsAdmin, ReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
                           TitleCreateUpdateSerializer, TitleSerializer,
                           TokenSerializer, UserSerializer)
-from .viewsets import CreateRetrieveListViewSet
+from .viewsets import CreateDestroyListViewSet
 
 
-class CategoryGenreViewSet(CreateRetrieveListViewSet):
+class CategoryGenreViewSet(CreateDestroyListViewSet):
     pagination_class = PageNumberPagination
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
@@ -49,7 +49,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (DjangoFilterBackend, OrderingFilter,)
     filterset_class = TitleFilter
-    ordering = ('name',)
+    ordering = ('rating')
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
@@ -60,12 +60,11 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAdmin | IsAuthor | IsModerator | ReadOnly,)
+    permission_classes = (AuthorOrAdminOrReadOnly,)
 
     @property
     def title(self):
-        pk = self.kwargs.get("title_id")
-        return get_object_or_404(Title, pk=pk)
+        return get_object_or_404(Title, pk=self.kwargs.get('title_id'))
 
     def get_queryset(self):
         return self.title.reviews.all()
@@ -77,12 +76,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAdmin | IsAuthor | IsModerator | ReadOnly,)
+    permission_classes = (AuthorOrAdminOrReadOnly,)
 
     @property
     def review(self):
-        pk = self.kwargs.get("review_id")
-        return get_object_or_404(Review, pk=pk)
+        return get_object_or_404(Review, pk=self.kwargs.get('review_id'))
 
     def get_queryset(self):
         return self.review.comments.all()
@@ -105,35 +103,15 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['GET', 'PATCH'],
-        permission_classes=(IsAuthenticated,))
+        url_path='me',
+        permission_classes=(IsAuthenticated,),
+        serializer_class=UserSerializer)
     def me(self, request):
         user = get_object_or_404(User, pk=request.user.id)
-        serializer = UserSerializer(user)
-        if request.method == 'PATCH':
-            serializer = UserSerializer(
-                user, data=request.data, partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save(role=user.role)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(role=user.role)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-def generate_confirmation_code(username):
-    user = get_object_or_404(User, username=username)
-    confirmation_code = str(uuid.uuid3(uuid.NAMESPACE_DNS, user.username))
-    user.confirmation_code = confirmation_code
-    user.save()
-
-
-def send_confirmation_code(username):
-    user = get_object_or_404(User, username=username)
-    generate_confirmation_code(username)
-    subject = 'Код подтверждения'
-    message = f'{user.confirmation_code} - Код для авторизации на сайте'
-    admin_email = ADMIN_EMAIL
-    user_email = [user.email]
-    send_mail(subject, message, admin_email, user_email)
 
 
 @api_view(['POST'])
@@ -143,46 +121,30 @@ def token(request):
     serializer.is_valid(raise_exception=True)
     username = serializer.validated_data['username']
     confirmation_code = serializer.validated_data['confirmation_code']
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
+    user = get_object_or_404(User, username=username)
+    if user.confirmation_code != confirmation_code:
         return Response(
-            'Пользователь не найден', status=status.HTTP_404_NOT_FOUND
+            'Код подтверждения неверный', status=status.HTTP_400_BAD_REQUEST
         )
-    if user.confirmation_code == confirmation_code:
-        refresh = RefreshToken.for_user(user)
-        token_data = {'token': str(refresh.access_token)}
-        return Response(token_data, status=status.HTTP_200_OK)
-    return Response(
-        'Код подтверждения неверный', status=status.HTTP_400_BAD_REQUEST
-    )
+    refresh = RefreshToken.for_user(user)
+    token_data = {'token': str(refresh.access_token)}
+    return Response(token_data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
-    username = request.data.get('username')
-    if not User.objects.filter(username=username).exists():
-        serializer = SignupSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        if serializer.validated_data['username'] != 'me':
-            serializer.save()
-            send_confirmation_code(username)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            'Имя пользователя "me" использовать нельзя!',
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    user = get_object_or_404(User, username=username)
-    serializer = SignupSerializer(
-        user, data=request.data, partial=True
-    )
+    serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    if serializer.validated_data['email'] == user.email:
-        serializer.save()
-        send_confirmation_code(username)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response(
-        'Проверьте, правильно ли указали почту!',
-        status=status.HTTP_400_BAD_REQUEST
+    username = serializer.validated_data['username']
+    confirmation_code = str(uuid.uuid3(uuid.NAMESPACE_DNS, username))
+    user, created = User.objects.get_or_create(
+        **serializer.validated_data,
+        confirmation_code=confirmation_code
     )
+    send_mail(
+        subject='Код подтверждения',
+        message=f'{user.confirmation_code} - Код для авторизации на сайте',
+        from_email=ADMIN_EMAIL,
+        recipient_list=[user.email])
+    return Response(serializer.data, status=status.HTTP_200_OK)
