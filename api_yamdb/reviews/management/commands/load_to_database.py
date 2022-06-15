@@ -18,7 +18,6 @@ DICT = {
 
 
 class Command(BaseCommand):
-    help = 'Загрузка данных из CSV файлов...'
 
     def handle(self, *args, **kwargs):
         for model, base in DICT.items():
