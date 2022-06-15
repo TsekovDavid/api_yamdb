@@ -51,18 +51,6 @@ class User(AbstractUser):
         return self.username[:20]
 
 
-# class CategoryGenreBase(models.Model):
-#     name = models.CharField(max_length=256)
-#     slug = models.SlugField(unique=True, max_length=50)
-
-#     class Meta:
-#         abstract = True
-#         ordering = ('name',)
-
-#     def __str__(self):
-#         return self.name[:20]
-
-
 class Category(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True, max_length=50)
