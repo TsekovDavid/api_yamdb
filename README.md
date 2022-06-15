@@ -50,10 +50,22 @@ python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+Создать миграции:
+
+```
+python manage.py makemigrations reviews
+```
+
 Выполнить миграции:
 
 ```
 python3 manage.py migrate
+```
+
+Заполнить базу данных тестовой информацией:
+
+```
+python manage.py load_to_database
 ```
 
 Запустить проект:
