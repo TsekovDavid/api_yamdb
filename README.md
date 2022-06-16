@@ -1,8 +1,9 @@
 # Проект YaMDb - сервис отзывов на произведения
 
 ### Авторы:
-- Цеков Давид -  https://github.com/TsekovDavid
-- Позднышева Наталья - https://github.com/pozdnysheva/
+[I'm an inline-style link with title](https://www.google.com "Google's Homepage")
+- [Цеков Давид](https://github.com/TsekovDavid)
+- [Позднышева Наталья](https://github.com/pozdnysheva/)
 
 ### Технологии:
 - Python
