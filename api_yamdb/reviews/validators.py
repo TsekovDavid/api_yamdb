@@ -8,7 +8,8 @@ def validate_year(value):
     year = date.today().year
     if not (value <= year):
         raise ValidationError(
-            'Год выпуска произведения не должен быть в будущем!'
+            'Год выпуска произведения не должен быть в будущем! '
+            f'Вы ввели: {value}'
         )
     return value
 
