@@ -49,7 +49,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (DjangoFilterBackend, OrderingFilter,)
     filterset_class = TitleFilter
-    ordering = ('rating')
+    ordering_fields = ('name',)
 
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'partial_update':
