@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from .validators import validate_year, validate_username
+from .validators import validate_username, validate_year
 
 
 class User(AbstractUser):
@@ -25,7 +25,7 @@ class User(AbstractUser):
     bio = models.TextField('Биография', blank=True,)
     role = models.CharField(
         'Роль',
-        max_length=len(max(list(list(zip(*ROLES))[0]), key=len)),
+        max_length=max(len(role) for role, _ in ROLES),
         choices=ROLES,
         default=USER
     )
@@ -45,30 +45,34 @@ class User(AbstractUser):
 
     @property
     def is_moderator(self):
-        return (self.role == self.MODER or self.is_staff)
+        return self.role == self.MODER
 
     def __str__(self):
         return self.username[:20]
 
 
-class Category(models.Model):
+class CategoryGenreBase(models.Model):
     name = models.CharField(max_length=256)
     slug = models.SlugField(unique=True, max_length=50)
 
     class Meta:
+        abstract = True
+        ordering = ('name',)
+
+    def __str__(self):
+        return self.name[:20]
+
+
+class Category(CategoryGenreBase):
+    class Meta(CategoryGenreBase.Meta):
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
-        ordering = ('name',)
 
 
-class Genre(models.Model):
-    name = models.CharField(max_length=256)
-    slug = models.SlugField(unique=True, max_length=50)
-
-    class Meta:
+class Genre(CategoryGenreBase):
+    class Meta(CategoryGenreBase.Meta):
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
-        ordering = ('name',)
 
 
 class Title(models.Model):
