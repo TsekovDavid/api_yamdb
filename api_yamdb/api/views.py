@@ -8,14 +8,15 @@ from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import ADMIN_EMAIL
 from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from .permissions import AuthorOrAdminOrReadOnly, IsAdmin, ReadOnly
+from .permissions import IsAdmin, IsAuthorOrModeratorOrReadOnly, ReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
                           TitleCreateUpdateSerializer, TitleSerializer,
@@ -60,7 +61,9 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (AuthorOrAdminOrReadOnly,)
+    permission_classes = (
+        IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrReadOnly,
+    )
 
     @property
     def title(self):
@@ -76,7 +79,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (AuthorOrAdminOrReadOnly,)
+    permission_classes = (
+        IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrReadOnly,
+    )
 
     @property
     def review(self):
