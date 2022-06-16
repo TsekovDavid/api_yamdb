@@ -1,7 +1,7 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
-from reviews.models import (Category, Comment, Genre, Review,
-                            Title, User)
+from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import validate_username
 
 
@@ -90,6 +90,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'username', 'email', 'first_name', 'last_name', 'bio', 'role'
         )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=User.objects.all(),
+                fields=['username', 'email']
+            )
+        ]
 
 
 class SignupSerializer(serializers.Serializer):
@@ -108,14 +114,14 @@ class SignupSerializer(serializers.Serializer):
             and User.objects.get(username=username).email != email
         ):
             raise serializers.ValidationError(
-                'Пользователь с такой почтой уже зарегистрирован!'
+                'Пользователь с таким ником уже зарегистрирован!'
             )
         if (
             User.objects.filter(email=email).exists()
             and User.objects.get(email=email).username != username
         ):
             raise serializers.ValidationError(
-                'Пользователь с таким ником уже зарегистрирован!'
+                'Пользователь с такой почтой уже зарегистрирован!'
             )
         return data
 
