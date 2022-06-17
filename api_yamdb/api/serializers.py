@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
+from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
 from reviews.validators import validate_username
@@ -26,11 +26,10 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = '__all__'
-        # read_only_fields should be a list or tuple of field names
-        read_only_fields = (
+        fields = (
             'id', 'rating', 'name', 'year', 'description', 'genre', 'category'
         )
+        read_only_fields = ('__all__',)
 
 
 class TitleCreateUpdateSerializer(serializers.ModelSerializer):
@@ -84,6 +83,14 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        required=True,
+        max_length=150,
+        validators=[
+            validate_username,
+            UniqueValidator(queryset=User.objects.all())
+        ]
+    )
 
     class Meta:
         model = User
@@ -94,7 +101,7 @@ class UserSerializer(serializers.ModelSerializer):
             UniqueTogetherValidator(
                 queryset=User.objects.all(),
                 fields=['username', 'email']
-            )
+            ),
         ]
 
 
@@ -105,25 +112,6 @@ class SignupSerializer(serializers.Serializer):
         max_length=150,
         validators=[validate_username]
     )
-
-    def validate(self, data):
-        username = data.get('username')
-        email = data.get('email')
-        if (
-            User.objects.filter(username=username).exists()
-            and User.objects.get(username=username).email != email
-        ):
-            raise serializers.ValidationError(
-                'Пользователь с таким ником уже зарегистрирован!'
-            )
-        if (
-            User.objects.filter(email=email).exists()
-            and User.objects.get(email=email).username != username
-        ):
-            raise serializers.ValidationError(
-                'Пользователь с такой почтой уже зарегистрирован!'
-            )
-        return data
 
 
 class TokenSerializer(serializers.Serializer):
