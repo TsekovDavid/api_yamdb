@@ -61,7 +61,8 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthorOrModeratorOrReadOnly, IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthorOrModeratorOrReadOnly,
+                          IsAuthenticatedOrReadOnly,)
 
     @property
     def title(self):
@@ -77,7 +78,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthorOrModeratorOrReadOnly, IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthorOrModeratorOrReadOnly,
+                          IsAuthenticatedOrReadOnly,)
 
     @property
     def review(self):
