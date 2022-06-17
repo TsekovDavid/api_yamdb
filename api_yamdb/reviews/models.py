@@ -38,6 +38,12 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        unique_together = ('username', 'email',)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['username', 'email'], name='unique_together'
+            )
+        ]
 
     @property
     def is_admin(self):

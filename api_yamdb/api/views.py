@@ -61,9 +61,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (
-        IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrReadOnly,
-    )
+    permission_classes = (IsAuthorOrModeratorOrReadOnly, IsAuthenticatedOrReadOnly,)
 
     @property
     def title(self):
@@ -79,9 +77,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (
-        IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrReadOnly,
-    )
+    permission_classes = (IsAuthorOrModeratorOrReadOnly, IsAuthenticatedOrReadOnly,)
 
     @property
     def review(self):
@@ -142,11 +138,33 @@ def signup(request):
     serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     username = serializer.validated_data['username']
+    email = serializer.validated_data['email']
+    if (
+        User.objects.filter(username=username).exists()
+        and User.objects.get(username=username).email != email
+    ):
+        return Response(
+            'Пользователь с таким ником уже зарегистрирован!',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if (
+        User.objects.filter(email=email).exists()
+        and User.objects.get(email=email).username != username
+    ):
+        return Response(
+            'Пользователь с такой почтой уже зарегистрирован!',
+            status=status.HTTP_400_BAD_REQUEST
+        )
     confirmation_code = str(uuid.uuid3(uuid.NAMESPACE_DNS, username))
-    user, created = User.objects.get_or_create(
-        **serializer.validated_data,
-        confirmation_code=confirmation_code
-    )
+    try:
+        user, created = User.objects.get_or_create(
+            **serializer.validated_data,
+            confirmation_code=confirmation_code
+        )
+    except User.DoesNotExist:
+        return Response(
+            'Придумаю позже!', status=status.HTTP_400_BAD_REQUEST
+        )
     send_mail(
         subject='Код подтверждения',
         message=f'{user.confirmation_code} - Код для авторизации на сайте',
