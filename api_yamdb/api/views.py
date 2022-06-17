@@ -16,7 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api_yamdb.settings import ADMIN_EMAIL
 from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsAuthorOrModerator, ReadOnly
+from .permissions import IsAdmin, IsAuthorOrModeratorOrReadOnly, ReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
                           TitleCreateUpdateSerializer, TitleSerializer,
@@ -61,7 +61,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthorOrModerator, IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthorOrModeratorOrReadOnly, IsAuthenticatedOrReadOnly,)
 
     @property
     def title(self):
@@ -77,7 +77,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (IsAuthorOrModerator, IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAuthorOrModeratorOrReadOnly, IsAuthenticatedOrReadOnly,)
 
     @property
     def review(self):

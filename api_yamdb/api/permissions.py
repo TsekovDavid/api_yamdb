@@ -11,7 +11,7 @@ class ReadOnly(permissions.BasePermission):
         return request.method in permissions.SAFE_METHODS
 
 
-class IsAuthorOrModerator(permissions.BasePermission):
+class IsAuthorOrModeratorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         return (
             request.method in permissions.SAFE_METHODS
