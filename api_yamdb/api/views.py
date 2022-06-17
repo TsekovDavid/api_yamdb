@@ -1,4 +1,5 @@
 import uuid
+import math, random
 
 from django.core.mail import send_mail
 from django.db.models import Avg
@@ -143,13 +144,49 @@ def signup(request):
     serializer.is_valid(raise_exception=True)
     username = serializer.validated_data['username']
     confirmation_code = str(uuid.uuid3(uuid.NAMESPACE_DNS, username))
-    user, created = User.objects.get_or_create(
-        **serializer.validated_data,
-        confirmation_code=confirmation_code
-    )
+    try:
+        user, created = User.objects.get_or_create(
+            **serializer.validated_data,
+            confirmation_code=confirmation_code
+        )
+    except User.DoesNotExist:
+        return Response(
+            'Придумаю позже!', status=status.HTTP_400_BAD_REQUEST
+        )
     send_mail(
         subject='Код подтверждения',
         message=f'{user.confirmation_code} - Код для авторизации на сайте',
         from_email=ADMIN_EMAIL,
         recipient_list=[user.email])
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# def signup(request):
+#     serializer = SignupSerializer(data=request.data)
+#     if serializer.is_valid():
+#         username = request.data['username']
+#         email = request.data['email']
+#         try:
+#             user = User.objects.get(username=username, email=email)
+#         except User.DoesNotExist:
+#             serializer = UserSerializer(data=request.data)
+#             if serializer.is_valid(raise_exception=True):
+#                 user = serializer.save()
+#         confirmation_code = generateOTP()
+#         user.confirmation_code = confirmation_code
+#         send_mail(
+#             subject='Код подтверждения',
+#             message=f'{user.confirmation_code} - Код для авторизации на сайте',
+#             from_email=ADMIN_EMAIL,
+#             recipient_list=[user.email])
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+def generateOTP():
+    digits = "0123456789"
+    OTP = ""
+    for i in range(4) :
+        OTP += digits[math.floor(random.random() * 10)]
+    return OTP
