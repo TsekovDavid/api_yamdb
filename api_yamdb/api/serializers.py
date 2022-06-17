@@ -113,25 +113,6 @@ class SignupSerializer(serializers.Serializer):
         validators=[validate_username]
     )
 
-    # def validate(self, data):
-    #     username = data.get('username')
-    #     email = data.get('email')
-    #     if (
-    #         User.objects.filter(username=username).exists()
-    #         and User.objects.get(username=username).email != email
-    #     ):
-    #         raise serializers.ValidationError(
-    #             'Пользователь с таким ником уже зарегистрирован!'
-    #         )
-    #     if (
-    #         User.objects.filter(email=email).exists()
-    #         and User.objects.get(email=email).username != username
-    #     ):
-    #         raise serializers.ValidationError(
-    #             'Пользователь с такой почтой уже зарегистрирован!'
-    #         )
-    #     return data
-
 
 class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(

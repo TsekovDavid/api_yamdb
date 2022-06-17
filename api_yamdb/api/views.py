@@ -1,5 +1,4 @@
 import uuid
-import math, random
 
 from django.core.mail import send_mail
 from django.db.models import Avg
@@ -17,7 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api_yamdb.settings import ADMIN_EMAIL
 from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-from .permissions import IsAdmin, IsAuthorOrModeratorOrReadOnly, ReadOnly
+from .permissions import IsAdmin, IsAuthorOrModerator, ReadOnly
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignupSerializer,
                           TitleCreateUpdateSerializer, TitleSerializer,
@@ -62,9 +61,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (
-        IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrReadOnly,
-    )
+    permission_classes = (IsAuthorOrModerator, IsAuthenticatedOrReadOnly,)
 
     @property
     def title(self):
@@ -80,9 +77,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     pagination_class = PageNumberPagination
-    permission_classes = (
-        IsAuthenticatedOrReadOnly, IsAuthorOrModeratorOrReadOnly,
-    )
+    permission_classes = (IsAuthorOrModerator, IsAuthenticatedOrReadOnly,)
 
     @property
     def review(self):
@@ -143,6 +138,23 @@ def signup(request):
     serializer = SignupSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     username = serializer.validated_data['username']
+    email = serializer.validated_data['email']
+    if (
+        User.objects.filter(username=username).exists()
+        and User.objects.get(username=username).email != email
+    ):
+        return Response(
+            'Пользователь с таким ником уже зарегистрирован!',
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if (
+        User.objects.filter(email=email).exists()
+        and User.objects.get(email=email).username != username
+    ):
+        return Response(
+            'Пользователь с такой почтой уже зарегистрирован!',
+            status=status.HTTP_400_BAD_REQUEST
+        )
     confirmation_code = str(uuid.uuid3(uuid.NAMESPACE_DNS, username))
     try:
         user, created = User.objects.get_or_create(
@@ -159,34 +171,3 @@ def signup(request):
         from_email=ADMIN_EMAIL,
         recipient_list=[user.email])
     return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def signup(request):
-#     serializer = SignupSerializer(data=request.data)
-#     if serializer.is_valid():
-#         username = request.data['username']
-#         email = request.data['email']
-#         try:
-#             user = User.objects.get(username=username, email=email)
-#         except User.DoesNotExist:
-#             serializer = UserSerializer(data=request.data)
-#             if serializer.is_valid(raise_exception=True):
-#                 user = serializer.save()
-#         confirmation_code = generateOTP()
-#         user.confirmation_code = confirmation_code
-#         send_mail(
-#             subject='Код подтверждения',
-#             message=f'{user.confirmation_code} - Код для авторизации на сайте',
-#             from_email=ADMIN_EMAIL,
-#             recipient_list=[user.email])
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-def generateOTP():
-    digits = "0123456789"
-    OTP = ""
-    for i in range(4) :
-        OTP += digits[math.floor(random.random() * 10)]
-    return OTP
